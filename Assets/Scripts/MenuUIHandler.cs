@@ -22,7 +22,10 @@ public class MenuUIHandler : MonoBehaviour
 
 
 
- 
+    public void DeleteData()
+    {
+        PlayerPrefs.DeleteAll();
+    }
 
     public void StartButton()
     {
