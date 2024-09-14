@@ -1,13 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class MainManager : MonoBehaviour
 {
-    public static MainManager Instance { get; private set; }
+    public static MainManager Instance;
 
     public Brick BrickPrefab;
     public int LineCount = 6;
@@ -16,30 +16,29 @@ public class MainManager : MonoBehaviour
     public Text ScoreText;
     public Text BestScoreText;
     public GameObject GameOverText;
-
+    
     private bool m_Started = false;
-
-    [SerializeField] private int m_Points;
+    public int m_Points { get; set; }
+    public int b_Score;
     
     private bool m_GameOver = false;
 
-
     private void Awake()
     {
-        if (Instance != null)
+        if(Instance != null)
         {
             Destroy(gameObject);
-            return;
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
-        LoadScore();
     }
+
 
     // Start is called before the first frame update
     void Start()
     {
+        if (PlayerPrefs.GetInt("BestScore") == 0) PlayerPrefs.SetInt("BestScore", 0);
+        b_Score = PlayerPrefs.GetInt("BestScore");
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -58,6 +57,8 @@ public class MainManager : MonoBehaviour
 
     private void Update()
     {
+        BestScoreUI();
+        Menu.Instance.u_Points = m_Points;
         if (!m_Started)
         {
             if (Input.GetKeyDown(KeyCode.Space))
@@ -75,6 +76,7 @@ public class MainManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.Space))
             {
+                Destroy(gameObject);
                 SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
         }
@@ -90,34 +92,32 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        PlayerPrefs.Save();
     }
-
-//  ----------------------------------------------------
-
-    [System.Serializable]
-    class SaveData { public int m_Points; }
-    public void SaveScore()
+    void BestScoreUI()
     {
-        SaveData data = new SaveData();
-        data.m_Points = this.m_Points;
+        BestScoreHandler();
+        BestScoreText.text = $"Best Score : {PlayerPrefs.GetString("BestUser")} - {PlayerPrefs.GetInt("BestScore")}";
+        Menu.Instance.BestScoreHandler();
 
-        string json = JsonUtility.ToJson(data);
-
-        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
     }
 
-    public void LoadScore()
+    void BestScoreHandler()
     {
-        string path = Application.persistentDataPath + "/savefile.json";
-
-        if (File.Exists(path))
-        {
-            string json = File.ReadAllText(path);
-
-            SaveData data = JsonUtility.FromJson<SaveData>(json);
-
-            this.m_Points = data.m_Points;
-            BestScoreText.text = $"Best Score : {m_Points}";
-        }
+        if (PlayerPrefs.GetInt("BestScore") < m_Points) PlayerPrefs.SetInt("BestScore", m_Points);
     }
+
+    public void BackButton()
+    {
+        SceneManager.LoadScene("menu");
+    }
+    public void EndButton()
+    {
+#if UNITY_EDITOR
+        EditorApplication.ExitPlaymode();
+#else
+        Application.Quit();
+#endif
+    }
+
 }
